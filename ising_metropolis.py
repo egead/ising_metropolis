@@ -26,7 +26,7 @@ def create_uniform_grid(grid_shape, direction: int = 1):
         np.array
     '''
     if direction == 1: 
-        return np.ones(size=grid_shape, dtype=int)
+        return np.ones(shape=grid_shape, dtype=int)
     elif direction == -1: 
         return np.full(size=grid_shape, fill_value = -1, dtype=int)
     else: 
