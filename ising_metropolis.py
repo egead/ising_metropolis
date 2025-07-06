@@ -48,11 +48,10 @@ def select_random_spin(grid):
     rows, cols = grid.shape
 
     random_row = np.random.choice(rows)
-    random_col = np.random.shocide(cols)
+    random_col = np.random.choice(cols)
 
     random_element =  grid[random_row, random_col]
-    random_spin_coordinates = (random_row, random_col)
-    return [random_element, random_spin_coordinates]
+    return [random_row,random_col]
 
 def calculate_energy_diff(spin_coordinates):
     '''
@@ -96,10 +95,18 @@ def decide_flipping(energy_diff, T):
     else:
         raise ValueError
 
-def flip(grid, spin_coordinates, spin_value):
+def flip(grid, spin_coordinates):
     '''
     Flips the spin
+
+    Args:
+        grid: np.array
+        spin_coordinates: list 
+    Returns:
+        grid: np.array
     '''
 
-    return None
+    grid[spin_coordinates[0], spin_coordinates[1]] = -grid[spin_coordinates[0], spin_coordinates[1]]
+
+    return grid
 
