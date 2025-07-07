@@ -48,6 +48,7 @@ def select_random_spin(grid):
 
     random_row = np.random.choice(rows)
     random_col = np.random.choice(cols)
+    print('Selected spin: ', (random_row, random_col))
 
     return [random_row,random_col]
 
@@ -99,6 +100,8 @@ def calculate_energy_diff(grid, spin_coordinates, J):
 
     energy_diff = 2 *J* grid[i,j] * (grid[up,j] + grid[down,j]
                                 + grid[i,left] + grid[i, right])
+    
+    print('\n Calculated energy diff for spin in coordinates ', spin_coordinates, ' is ', energy_diff)
 
     return energy_diff 
 
@@ -127,9 +130,16 @@ def decide_flipping(energy_diff, T):
     x = np.random.rand()
     
     if energy_diff <= 0: 
+        print('\n Energy difference is less than 0, decided TO FLIP')
         return 1
     else:
-        return 1 if np.exp(-energy_diff/T)>x else 0
+        if np.exp(-energy_diff/T)>x:
+            print('\n exp(-energy_diff/T)>x, decided TO FLIP')
+            return 1
+        else: 
+            print('\n exp(-energy_diff/T)<x, decided NOT TO FLIP')
+            return 0
+
 
 
 @jit(nopython=True)
