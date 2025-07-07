@@ -158,9 +158,40 @@ def flip(grid, spin_coordinates):
 
     return grid
 
-def metropolis_step(grid, T, J=1.0):
-    coordinates = select_random_spin(grid)
-    delta_E = calculate_energy_diff(grid, coordinates, J)
-    if decide_flipping(delta_E, T):
-        flip(grid, coordinates)
-    return grid
+@jit(nopython=True)
+def metropolis_sweep(grid, T, J=1.0, n_steps=1000, sample_interval=100):
+    """
+    Metropolis simulation with observable tracking
+    
+    Args:
+        grid: (np.array) Initial configuration
+        T: (float) Temperature
+        J: (float) Coupling constant  
+        n_steps: (int) Total MC steps
+        sample_interval: (int) How often to record observables
+        
+    Returns:
+        grid: (np.array) Final configuration
+        energies: (np.array) Array of energy measurements
+        magnetizations: (np.array) Array of magnetization measurements
+    """
+    
+    n_samples = n_steps // sample_interval
+    energies = np.zeros(n_samples)
+    magnetizations = np.zeros(n_samples)
+    
+    sample_count = 0
+    
+    for step in range(n_steps):
+        coordinates = select_random_spin(grid)
+        delta_E = calculate_energy_diff(grid, coordinates, J)
+        if decide_flipping(delta_E, T):
+            flip(grid, coordinates)
+        
+        # Record observables periodically
+        if step % sample_interval == 0 and sample_count < n_samples:
+            energies[sample_count] = calculate_total_energy(grid, J)
+            magnetizations[sample_count] = calculate_magnetization(grid)
+            sample_count += 1
+    
+    return grid, energies, magnetizations
