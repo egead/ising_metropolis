@@ -95,6 +95,26 @@ def calculate_magnetization(grid):
     return np.sum(grid)
 
 @jit(nopython=True)
+def calculate_specific_heat(energies, T, N):
+    """
+    Calculate specific heat from energy measurements
+    Specific heat per spin: C_v = <(ΔE)²> / (k_B T² N)
+    
+    Args:
+        energies: Array of energy measurements
+        T: Temperature
+        N: Total number of spins (L²)
+    
+    Returns:
+        specific_heat: Specific heat per spin
+    """
+    mean_E = np.mean(energies)
+    mean_E2 = np.mean(energies**2)
+    variance_E = mean_E2 - mean_E**2
+    C_v = variance_E / (T**2 * N)
+    return C_v
+
+@jit(nopython=True)
 def decide_flipping(energy_diff, T):
     '''
     Decides if the energy difference is sufficient for flipping the spin. 
@@ -165,6 +185,7 @@ def metropolis_sweep(grid, T, J=1.0, n_steps=1000, sample_interval=100):
     sample_count = 0
     
     for step in range(n_steps):
+        print('Step: ', step)
         coordinates = select_random_spin(grid)
         delta_E = calculate_energy_diff(grid, coordinates, J)
         if decide_flipping(delta_E, T):
@@ -177,3 +198,46 @@ def metropolis_sweep(grid, T, J=1.0, n_steps=1000, sample_interval=100):
             sample_count += 1
     
     return grid, energies, magnetizations
+
+
+def autocorrelation_function(data, max_lag=None):
+    """
+    Calculate autocorrelation function
+    
+    Args:
+        data: Time series data (e.g., energies or magnetizations)
+        max_lag: Maximum lag to calculate (default: len(data)//4)
+    
+    Returns:
+        autocorr: Autocorrelation function
+        lags: Corresponding lag values
+    """
+    if max_lag is None:
+        max_lag = len(data) // 4
+    
+    data_centered = data - np.mean(data)
+    
+    n = len(data_centered)
+    autocorr = np.zeros(max_lag)
+    variance = np.var(data_centered)
+    
+    for lag in range(max_lag):
+        if lag < n:
+            autocorr[lag] = np.mean(data_centered[:-lag if lag > 0 else None] * 
+                                  data_centered[lag:]) / variance
+    
+    lags = np.arange(max_lag)
+    return autocorr, lags
+
+def integrated_autocorr_time(autocorr):
+    """
+    Calculate integrated autocorrelation time
+    τ_int = 1 + 2 * Σ ρ(t) where ρ(t) > 0
+    """
+    tau_int = 1.0
+    for i in range(1, len(autocorr)):
+        if autocorr[i] <= 0:
+            break
+        tau_int += 2 * autocorr[i]
+    
+    return tau_int
