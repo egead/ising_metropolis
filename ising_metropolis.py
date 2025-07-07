@@ -14,24 +14,6 @@ def create_random_grid(grid_shape):
     '''
     return np.random.choice([-1, 1], size=grid_shape)
 
-def create_uniform_grid(grid_shape, spin: int = 1):
-    '''
-    Creates a uniform grid (np.array) of size grid_shape. 
-    All entries take "spin". Spin must be either -1 or 1
-
-    Args: 
-        grid_shape: (n_rows, n_columns)
-        spin: int
-
-    Returns:
-        np.array
-    '''
-    if spin == 1: 
-        return np.ones(shape=grid_shape, dtype=int)
-    elif spin == -1: 
-        return np.full(shape=grid_shape, fill_value = -1, dtype=int)
-    else: 
-        raise ValueError("Spin can be only -1 or 1")
 
 @jit(nopython=True)
 def select_random_spin(grid):
