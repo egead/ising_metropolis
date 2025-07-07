@@ -1,7 +1,5 @@
 import numpy as np 
-
-# I have the idea that maybe making this object oriented would be better
-# However, I have to look if it would still be compatible with NUMBA
+from numba import jit
 
 def create_random_grid(grid_shape):
     '''
@@ -19,11 +17,11 @@ def create_random_grid(grid_shape):
 def create_uniform_grid(grid_shape, spin: int = 1):
     '''
     Creates a uniform grid (np.array) of size grid_shape. 
-    All entries take "direction". Direction must be either -1 or 1
+    All entries take "spin". Spin must be either -1 or 1
 
     Args: 
         grid_shape: (n_rows, n_columns)
-        direction: int
+        spin: int
 
     Returns:
         np.array
@@ -33,8 +31,9 @@ def create_uniform_grid(grid_shape, spin: int = 1):
     elif spin == -1: 
         return np.full(shape=grid_shape, fill_value = -1, dtype=int)
     else: 
-        raise ValueError("Direction can be only -1 or 1")
+        raise ValueError("Spin can be only -1 or 1")
 
+@jit(nopython=True)
 def select_random_spin(grid):
     '''
     Selects a random spin from the given grid
@@ -50,22 +49,67 @@ def select_random_spin(grid):
     random_row = np.random.choice(rows)
     random_col = np.random.choice(cols)
 
-    random_element =  grid[random_row, random_col]
     return [random_row,random_col]
 
-def calculate_energy_diff(spin_coordinates):
+@jit(nopython=True)
+def calculate_total_energy(grid, J=1.0): 
     '''
-    Calculates ∆E 
+    Calculates the total energy with coupling constant J. 
+    J is the coupling constant. 
+    J > 0 => ferromagnetic
+    J < 0 => antiferromagnetic
     
     Args: 
-        spin_coordinates
+        grid: np.array
+        J: float
+    Returns:
+        total_energy:float
+    '''
+    L = grid.shape[0]
+    total_energy=0.0
+    for i in range(L):
+        for j in range(L):
+            down = (i+1)%L 
+            right = (j+1)%L
+            total_energy -= J*grid[i,j]*(grid[down,j]+grid[i,right])
+    return total_energy 
+
+@jit(nopython=True)
+def calculate_energy_diff(grid, spin_coordinates, J):
+    '''
+    Calculates ∆E 
+
+    ΔE=2J⋅s_i⋅∑_neighbours s_j
+    
+    Args: 
+        spin_coordinates: list
+        grid: np.array
+        J: float
     
     Returns: 
         energy_diff: float
     '''
+    L=grid.shape[0]
+    i,j = spin_coordinates
+
+    up = (i-1)%L
+    down = (i+1)%L
+    left = (j-1)%L
+    right = (j+1)%L
+
+    energy_diff = 2 *J* grid[i,j] * (grid[up,j] + grid[down,j]
+                                + grid[i,left] + grid[i, right])
 
     return energy_diff 
 
+@jit(nopython=True)
+def calculate_magnetization(grid):
+    '''
+    Calculates total magnetization
+    '''
+    return np.sum(grid)
+
+@jit(nopython=True)
 def decide_flipping(energy_diff, T):
     '''
     Decides if the energy difference is sufficient for flipping the spin. 
@@ -80,21 +124,15 @@ def decide_flipping(energy_diff, T):
         int (0 or 1, 0 for no flip, 1 for flip.
 
     '''
-    kB = 1 # Boltzmann constant 
-    x = np.random.rand([0,1])
+    x = np.random.rand()
     
     if energy_diff <= 0: 
-        return 1 
-    elif energy_diff > 0: 
-        if np.exp(-energy_diff/(kB*T)) > x:
-            return 1
-        elif np.exp(-energy_diff/(kB*T)) < x:
-            return 0
-        else:
-            raise ValueError
+        return 1
     else:
-        raise ValueError
+        return 1 if np.exp(-energy_diff/T)>x else 0
 
+
+@jit(nopython=True)
 def flip(grid, spin_coordinates):
     '''
     Flips the spin
@@ -110,3 +148,9 @@ def flip(grid, spin_coordinates):
 
     return grid
 
+def metropolis_step(grid, T, J=1.0):
+    coordinates = select_random_spin(grid)
+    delta_E = calculate_energy_diff(grid, coordinates, J)
+    if decide_flipping(delta_E, T):
+        flip(grid, coordinates)
+    return grid
