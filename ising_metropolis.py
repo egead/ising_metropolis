@@ -326,12 +326,10 @@ def compare_lattices(L=15, T=2.5, J=1.0, n_steps=5000):
         print(f"Running {lattice_name} lattice...")
         
         grid = create_random_grid((L, L))
-        final_grid, energies, magnetizations = metropolis_sweep(
-            grid, T, J, lattice_type, n_steps
-        )
+        final_grid, energies, magnetizations = metropolis_sweep(grid, T, J, n_steps, sample_interval=100, lattice_type=lattice_type)
         
         N = L * L
-        results[lattice_type] = {
+        results[lattice_name] = {
             'final_grid': final_grid,
             'energies': energies,
             'magnetizations': magnetizations,
